@@ -1,5 +1,6 @@
 package com.circuit.usermanagementapi.security;
 
+import com.circuit.usermanagementapi.config.RequestLoggingFilter;
 import com.circuit.usermanagementapi.security.jwt.AuthEntryPointJwt;
 import com.circuit.usermanagementapi.security.jwt.AuthTokenFilter;
 import com.circuit.usermanagementapi.security.services.UserDetailsServiceImpl;
@@ -27,6 +28,9 @@ public class WebSecurityConfig {
 
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
+
+    @Autowired
+    private RequestLoggingFilter requestLoggingFilter;
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -64,10 +68,16 @@ public class WebSecurityConfig {
                     .requestMatchers("/v3/api-docs/**").permitAll()
                     .requestMatchers("/swagger-ui/**").permitAll()
                     .requestMatchers("/swagger-ui.html").permitAll()
+                    .requestMatchers("/actuator/health/**").permitAll()
+                    .requestMatchers("/actuator/info").permitAll()
+                    .requestMatchers("/actuator/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             );
 
         http.authenticationProvider(authenticationProvider());
+        // Add request logging filter first to capture all requests
+        http.addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class);
+        // Then add JWT authentication filter
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
