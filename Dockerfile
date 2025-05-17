@@ -11,6 +11,6 @@ RUN mvn -f /home/app/pom.xml clean package
 # Package stage
 #
 FROM ubuntu/jre:17_edge
-COPY --from=build /home/app/target/UserManagementAPI-0.0.1.jar /usr/local/lib/UserManagementAPI.jar
+COPY --from=build /home/app/target/UserManagementAPI-0.0.1.jar.original /usr/local/lib/UserManagementAPI.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/usr/local/lib/UserManagementAPI.jar"]
