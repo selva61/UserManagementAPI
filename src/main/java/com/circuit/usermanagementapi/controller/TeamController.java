@@ -88,18 +88,26 @@ public class TeamController {
 
                     // Update team members if provided
                     if (teamRequest.getMemberIds() != null) {
-                        // Remove current team association for all members
-                        team.getMembers().forEach(member -> member.setTeam(null));
+                        // Create a set of user IDs for the new members
+                        Set<Long> newMemberIds = new HashSet<>(teamRequest.getMemberIds());
+
+                        // Remove members that are no longer in the team
+                        Set<User> currentMembers = new HashSet<>(team.getMembers());
+                        for (User member : currentMembers) {
+                            if (!newMemberIds.contains(member.getId())) {
+                                team.removeMember(member);
+                            }
+                        }
 
                         // Add new members
-                        Set<User> members = new HashSet<>();
                         teamRequest.getMemberIds().forEach(userId -> {
                             userRepository.findById(userId).ifPresent(user -> {
-                                user.setTeam(team);
-                                members.add(user);
+                                // Only add if not already a member of this team
+                                if (user.getTeam() == null || !user.getTeam().getId().equals(team.getId())) {
+                                    team.addMember(user);
+                                }
                             });
                         });
-                        team.setMembers(members);
                     }
 
                     teamRepository.save(team);
