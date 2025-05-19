@@ -4,6 +4,7 @@ import com.circuit.usermanagementapi.model.Team;
 import com.circuit.usermanagementapi.model.User;
 import com.circuit.usermanagementapi.payload.request.TeamRequest;
 import com.circuit.usermanagementapi.payload.response.MessageResponse;
+import com.circuit.usermanagementapi.payload.response.TeamDTO;
 import com.circuit.usermanagementapi.repository.TeamRepository;
 import com.circuit.usermanagementapi.repository.UserRepository;
 import jakarta.validation.Valid;
@@ -27,19 +28,23 @@ public class TeamController {
     UserRepository userRepository;
 
     @GetMapping
-    public List<Team> getAllTeams() {
-        return teamRepository.findAll();
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_PRODUCT_OWNER') or hasAuthority('ROLE_TEAM_MEMBER')")
+    public List<TeamDTO> getAllTeams() {
+        return teamRepository.findAll().stream()
+                .map(TeamDTO::new)
+                .toList();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_PRODUCT_OWNER') or hasAuthority('ROLE_TEAM_MEMBER')")
     public ResponseEntity<?> getTeamById(@PathVariable Long id) {
         return teamRepository.findById(id)
-                .map(team -> ResponseEntity.ok().body(team))
+                .map(team -> ResponseEntity.ok().body(new TeamDTO(team)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SCRUM_MASTER') or hasRole('PRODUCT_OWNER')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_PRODUCT_OWNER')")
     public ResponseEntity<?> createTeam(@Valid @RequestBody TeamRequest teamRequest) {
         if (teamRepository.existsByName(teamRequest.getName())) {
             return ResponseEntity
@@ -66,7 +71,7 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SCRUM_MASTER') or hasRole('PRODUCT_OWNER')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_PRODUCT_OWNER')")
     public ResponseEntity<?> updateTeam(@PathVariable Long id, @Valid @RequestBody TeamRequest teamRequest) {
         return teamRepository.findById(id)
                 .map(team -> {
@@ -104,7 +109,7 @@ public class TeamController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SCRUM_MASTER')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER')")
     public ResponseEntity<?> deleteTeam(@PathVariable Long id) {
         return teamRepository.findById(id)
                 .map(team -> {
@@ -118,7 +123,7 @@ public class TeamController {
     }
 
     @PutMapping("/{teamId}/members/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SCRUM_MASTER') or hasRole('PRODUCT_OWNER')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_PRODUCT_OWNER')")
     public ResponseEntity<?> addMemberToTeam(@PathVariable Long teamId, @PathVariable Long userId) {
         Team team = teamRepository.findById(teamId).orElse(null);
         User user = userRepository.findById(userId).orElse(null);
@@ -138,7 +143,7 @@ public class TeamController {
     }
 
     @DeleteMapping("/{teamId}/members/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SCRUM_MASTER') or hasRole('PRODUCT_OWNER')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_PRODUCT_OWNER')")
     public ResponseEntity<?> removeMemberFromTeam(@PathVariable Long teamId, @PathVariable Long userId) {
         Team team = teamRepository.findById(teamId).orElse(null);
         User user = userRepository.findById(userId).orElse(null);

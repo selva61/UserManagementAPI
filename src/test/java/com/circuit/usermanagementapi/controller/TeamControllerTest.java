@@ -3,6 +3,7 @@ package com.circuit.usermanagementapi.controller;
 import com.circuit.usermanagementapi.model.Team;
 import com.circuit.usermanagementapi.model.User;
 import com.circuit.usermanagementapi.payload.request.TeamRequest;
+import com.circuit.usermanagementapi.payload.response.TeamDTO;
 import com.circuit.usermanagementapi.repository.TeamRepository;
 import com.circuit.usermanagementapi.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -70,7 +71,8 @@ class TeamControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(TEAM_ID))
                 .andExpect(jsonPath("$[0].name").value(TEAM_NAME))
-                .andExpect(jsonPath("$[0].description").value(TEAM_DESCRIPTION));
+                .andExpect(jsonPath("$[0].description").value(TEAM_DESCRIPTION))
+                .andExpect(jsonPath("$[0].members").isArray());
     }
 
     @Test
@@ -83,7 +85,8 @@ class TeamControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TEAM_ID))
                 .andExpect(jsonPath("$.name").value(TEAM_NAME))
-                .andExpect(jsonPath("$.description").value(TEAM_DESCRIPTION));
+                .andExpect(jsonPath("$.description").value(TEAM_DESCRIPTION))
+                .andExpect(jsonPath("$.members").isArray());
     }
 
     @Test

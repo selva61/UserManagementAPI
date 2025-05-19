@@ -65,12 +65,15 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(auth -> 
                 auth.requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/test/**").permitAll()
+                    .requestMatchers("/api/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN","ROLE_SCRUM_MASTER", "ROLE_PRODUCT_OWNER", "ROLE_TEAM_MEMBER")
+                    .requestMatchers("/api/teams/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_TEAM_MEMBER", "ROLE_SCRUM_MASTER", "ROLE_PRODUCT_OWNER")
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/v3/api-docs/**").permitAll()
                     .requestMatchers("/swagger-ui/**").permitAll()
                     .requestMatchers("/swagger-ui.html").permitAll()
                     .requestMatchers("/actuator/health/**").permitAll()
                     .requestMatchers("/actuator/info").permitAll()
-                    .requestMatchers("/actuator/**").hasRole("ADMIN")
+                    .requestMatchers("/actuator/**").hasAuthority("ROLE_ADMIN")
                     .anyRequest().authenticated()
             );
 

@@ -31,21 +31,49 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
+            logger.debug("Request URI: {}, Method: {}", request.getRequestURI(), request.getMethod());
+            logger.debug("JWT token: {}", jwt != null ? "present" : "null");
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            if (jwt != null) {
+                logger.debug("JWT token length: {}", jwt.length());
+                logger.debug("JWT token first 10 chars: {}", jwt.length() > 10 ? jwt.substring(0, 10) + "..." : jwt);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                boolean isValid = jwtUtils.validateJwtToken(jwt);
+                logger.debug("JWT token valid: {}", isValid);
+
+                if (isValid) {
+                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                    logger.debug("Username from token: {}", username);
+
+                    if (username != null) {
+                        try {
+                            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                            logger.debug("User details loaded successfully for: {}", username);
+                            logger.debug("User authorities: {}", userDetails.getAuthorities());
+
+                            UsernamePasswordAuthenticationToken authentication =
+                                    new UsernamePasswordAuthenticationToken(
+                                            userDetails,
+                                            null,
+                                            userDetails.getAuthorities());
+                            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                            logger.debug("Authentication set in SecurityContextHolder");
+                        } catch (Exception e) {
+                            logger.error("Error loading user details for username: {}", username, e);
+                        }
+                    } else {
+                        logger.error("Username extracted from token is null for request: {}", request.getRequestURI());
+                    }
+                } else {
+                    logger.debug("JWT token validation failed for request: {}", request.getRequestURI());
+                }
+            } else {
+                logger.debug("No JWT token found in request: {}", request.getRequestURI());
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e.getMessage());
+            logger.error("Cannot set user authentication for request: {}", request.getRequestURI(), e);
         }
 
         filterChain.doFilter(request, response);
@@ -53,11 +81,24 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
+        logger.debug("Authorization header: {}", headerAuth != null ? 
+                     (headerAuth.length() > 15 ? headerAuth.substring(0, 15) + "..." : headerAuth) : "null");
 
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            logger.debug("Bearer token found in Authorization header");
             return headerAuth.substring(7);
+        } else if (headerAuth != null) {
+            logger.debug("Authorization header does not start with 'Bearer ' prefix");
         }
 
+        // Check for token in request parameters as a fallback
+        String paramToken = request.getParameter("token");
+        if (StringUtils.hasText(paramToken)) {
+            logger.debug("Token found in request parameter");
+            return paramToken;
+        }
+
+        logger.debug("No JWT token found in request");
         return null;
     }
 }

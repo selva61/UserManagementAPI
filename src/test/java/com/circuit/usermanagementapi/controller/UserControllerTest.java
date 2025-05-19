@@ -5,6 +5,8 @@ import com.circuit.usermanagementapi.model.Role;
 import com.circuit.usermanagementapi.model.Team;
 import com.circuit.usermanagementapi.model.User;
 import com.circuit.usermanagementapi.payload.response.MessageResponse;
+import com.circuit.usermanagementapi.payload.response.UserDTO;
+import com.circuit.usermanagementapi.payload.response.UserDetailsDTO;
 import com.circuit.usermanagementapi.repository.TeamRepository;
 import com.circuit.usermanagementapi.repository.UserRepository;
 import com.circuit.usermanagementapi.security.UserSecurity;
@@ -101,7 +103,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(USER_ID))
                 .andExpect(jsonPath("$[0].username").value(USERNAME))
-                .andExpect(jsonPath("$[0].email").value(EMAIL));
+                .andExpect(jsonPath("$[0].firstName").value("Test"))
+                .andExpect(jsonPath("$[0].lastName").value("User"));
     }
 
     @Test
@@ -114,7 +117,10 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(USER_ID))
                 .andExpect(jsonPath("$.username").value(USERNAME))
-                .andExpect(jsonPath("$.email").value(EMAIL));
+                .andExpect(jsonPath("$.email").value(EMAIL))
+                .andExpect(jsonPath("$.firstName").value("Test"))
+                .andExpect(jsonPath("$.lastName").value("User"))
+                .andExpect(jsonPath("$.preferences").exists());
     }
 
     @Test
@@ -142,7 +148,10 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(USER_ID))
                 .andExpect(jsonPath("$.username").value(USERNAME))
-                .andExpect(jsonPath("$.email").value(EMAIL));
+                .andExpect(jsonPath("$.email").value(EMAIL))
+                .andExpect(jsonPath("$.firstName").value("Test"))
+                .andExpect(jsonPath("$.lastName").value("User"))
+                .andExpect(jsonPath("$.preferences").exists());
     }
 
     @Test

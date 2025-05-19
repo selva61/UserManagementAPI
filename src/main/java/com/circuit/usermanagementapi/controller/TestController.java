@@ -17,25 +17,25 @@ public class TestController {
     }
 
     @GetMapping("/user")
-    @PreAuthorize("hasRole('TEAM_MEMBER') or hasRole('PRODUCT_OWNER') or hasRole('SCRUM_MASTER') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_TEAM_MEMBER') or hasAuthority('ROLE_PRODUCT_OWNER') or hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_ADMIN')")
     public String userAccess() {
         return "User Content.";
     }
 
     @GetMapping("/po")
-    @PreAuthorize("hasRole('PRODUCT_OWNER') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_PRODUCT_OWNER') or hasAuthority('ROLE_ADMIN')")
     public String productOwnerAccess() {
         return "Product Owner Board.";
     }
 
     @GetMapping("/sm")
-    @PreAuthorize("hasRole('SCRUM_MASTER') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_SCRUM_MASTER') or hasAuthority('ROLE_ADMIN')")
     public String scrumMasterAccess() {
         return "Scrum Master Board.";
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public String adminAccess() {
         return "Admin Board. Full access to all features.";
     }

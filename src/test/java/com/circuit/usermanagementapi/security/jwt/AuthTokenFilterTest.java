@@ -185,4 +185,63 @@ class AuthTokenFilterTest {
         // Verify that no token was extracted
         assertNull(jwt);
     }
+
+    @Test
+    void testParseJwt_WithTokenInRequestParameter() throws Exception {
+        // Mock request to return a null Authorization header but a token in request parameter
+        when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.getParameter("token")).thenReturn(TOKEN);
+
+        // Call the method using reflection
+        java.lang.reflect.Method parseJwtMethod = AuthTokenFilter.class.getDeclaredMethod("parseJwt", HttpServletRequest.class);
+        parseJwtMethod.setAccessible(true);
+        String jwt = (String) parseJwtMethod.invoke(authTokenFilter, request);
+
+        // Verify that the token was extracted from the request parameter
+        assertEquals(TOKEN, jwt);
+    }
+
+    @Test
+    void testDoFilterInternal_WithValidTokenButNullUsername() throws ServletException, IOException {
+        // Mock request to return a valid token
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + TOKEN);
+
+        // Mock JWT utils to validate the token but return null username
+        when(jwtUtils.validateJwtToken(TOKEN)).thenReturn(true);
+        when(jwtUtils.getUserNameFromJwtToken(TOKEN)).thenReturn(null);
+
+        // Call the filter
+        authTokenFilter.doFilterInternal(request, response, filterChain);
+
+        // Verify that the filter chain was called
+        verify(filterChain).doFilter(request, response);
+
+        // Verify that no authentication was set in the security context
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+
+        // Verify that user details service was not called
+        verify(userDetailsService, never()).loadUserByUsername(anyString());
+    }
+
+    @Test
+    void testDoFilterInternal_WithUserDetailsServiceException() throws ServletException, IOException {
+        // Mock request to return a valid token
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + TOKEN);
+
+        // Mock JWT utils to validate the token and return a username
+        when(jwtUtils.validateJwtToken(TOKEN)).thenReturn(true);
+        when(jwtUtils.getUserNameFromJwtToken(TOKEN)).thenReturn(USERNAME);
+
+        // Mock user details service to throw an exception
+        when(userDetailsService.loadUserByUsername(USERNAME)).thenThrow(new RuntimeException("Test exception"));
+
+        // Call the filter
+        authTokenFilter.doFilterInternal(request, response, filterChain);
+
+        // Verify that the filter chain was called despite the exception
+        verify(filterChain).doFilter(request, response);
+
+        // Verify that no authentication was set in the security context
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
 }

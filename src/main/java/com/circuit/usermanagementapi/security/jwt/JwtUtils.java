@@ -33,28 +33,64 @@ public class JwtUtils {
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
     }
-    
+
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
     public String getUserNameFromJwtToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key()).build()
-                .parseClaimsJws(token).getBody().getSubject();
+        if (token == null) {
+            logger.error("Cannot extract username from null token");
+            return null;
+        }
+
+        logger.debug("Extracting username from JWT token: length={}", token.length());
+
+        try {
+            logger.debug("Trying to extract username with key (Base64-encoded)");
+            String username = Jwts.parserBuilder().setSigningKey(key()).build()
+                    .parseClaimsJws(token).getBody().getSubject();
+            logger.debug("Username extracted successfully: {}", username);
+            return username;
+        } catch (Exception e) {
+            logger.error("Failed to extract username: {}", e.getMessage(), e);
+            return null;
+        }
     }
 
     public boolean validateJwtToken(String authToken) {
+        if (authToken == null) {
+            logger.error("JWT token is null");
+            return false;
+        }
+
+        logger.debug("Validating JWT token: length={}", authToken.length());
+
         try {
+            logger.debug("Validating JWT token with secret key (Base64-encoded)");
             Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
+            logger.debug("JWT token validated successfully");
+
+            // Log some token details for debugging
+            try {
+                Claims claims = Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken).getBody();
+                logger.debug("JWT token details - Subject: {}, Issued: {}, Expiration: {}", 
+                           claims.getSubject(), claims.getIssuedAt(), claims.getExpiration());
+            } catch (Exception e) {
+                logger.debug("Could not extract token details: {}", e.getMessage());
+            }
+
             return true;
         } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
+            logger.error("Invalid JWT token: {}", e.getMessage(), e);
         } catch (ExpiredJwtException e) {
-            logger.error("JWT token is expired: {}", e.getMessage());
+            logger.error("JWT token is expired: {}", e.getMessage(), e);
         } catch (UnsupportedJwtException e) {
-            logger.error("JWT token is unsupported: {}", e.getMessage());
+            logger.error("JWT token is unsupported: {}", e.getMessage(), e);
         } catch (IllegalArgumentException e) {
-            logger.error("JWT claims string is empty: {}", e.getMessage());
+            logger.error("JWT claims string is empty: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected error validating JWT token: {}", e.getMessage(), e);
         }
 
         return false;
