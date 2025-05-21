@@ -58,6 +58,31 @@ public class JwtUtils {
         }
     }
 
+    /**
+     * Extracts the expiration time from a JWT token
+     * 
+     * @param token The JWT token
+     * @return The expiration time in milliseconds
+     */
+    public long getExpirationFromJwtToken(String token) {
+        if (token == null) {
+            logger.error("Cannot extract expiration from null token");
+            throw new IllegalArgumentException("Token cannot be null");
+        }
+
+        logger.debug("Extracting expiration from JWT token: length={}", token.length());
+
+        try {
+            Date expiration = Jwts.parserBuilder().setSigningKey(key()).build()
+                    .parseClaimsJws(token).getBody().getExpiration();
+            logger.debug("Expiration extracted successfully: {}", expiration);
+            return expiration.getTime();
+        } catch (Exception e) {
+            logger.error("Failed to extract expiration: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to extract expiration from token", e);
+        }
+    }
+
     public boolean validateJwtToken(String authToken) {
         if (authToken == null) {
             logger.error("JWT token is null");

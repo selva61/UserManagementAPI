@@ -1,5 +1,6 @@
 package com.circuit.usermanagementapi.security.jwt;
 
+import com.circuit.usermanagementapi.security.services.TokenBlacklistService;
 import com.circuit.usermanagementapi.security.services.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,6 +25,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
+
     private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
     @Override
@@ -41,7 +45,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 boolean isValid = jwtUtils.validateJwtToken(jwt);
                 logger.debug("JWT token valid: {}", isValid);
 
-                if (isValid) {
+                // Check if token is blacklisted
+                boolean isBlacklisted = tokenBlacklistService.isTokenBlacklisted(jwt);
+                logger.debug("JWT token blacklisted: {}", isBlacklisted);
+
+                if (isValid && !isBlacklisted) {
                     String username = jwtUtils.getUserNameFromJwtToken(jwt);
                     logger.debug("Username from token: {}", username);
 

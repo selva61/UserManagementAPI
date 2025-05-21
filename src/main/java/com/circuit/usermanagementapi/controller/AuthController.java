@@ -11,6 +11,7 @@ import com.circuit.usermanagementapi.repository.RoleRepository;
 import com.circuit.usermanagementapi.repository.TeamRepository;
 import com.circuit.usermanagementapi.repository.UserRepository;
 import com.circuit.usermanagementapi.security.jwt.JwtUtils;
+import com.circuit.usermanagementapi.security.services.TokenBlacklistService;
 import com.circuit.usermanagementapi.security.services.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +51,9 @@ public class AuthController {
 
     @Autowired
     JwtUtils jwtUtils;
+
+    @Autowired
+    TokenBlacklistService tokenBlacklistService;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -136,5 +142,51 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+
+    /**
+     * Logs out a user by invalidating their JWT token
+     * 
+     * @param request The HTTP request containing the JWT token
+     * @return ResponseEntity with a success message
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(HttpServletRequest request) {
+        String jwt = parseJwt(request);
+
+        if (jwt != null && StringUtils.hasText(jwt)) {
+            try {
+                // Get token expiration time
+                long expirationTime = jwtUtils.getExpirationFromJwtToken(jwt);
+
+                // Add token to blacklist
+                tokenBlacklistService.blacklistToken(jwt, expirationTime);
+
+                // Clear security context
+                SecurityContextHolder.clearContext();
+
+                return ResponseEntity.ok(new MessageResponse("Logout successful!"));
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+            }
+        }
+
+        return ResponseEntity.badRequest().body(new MessageResponse("Error: No token provided"));
+    }
+
+    /**
+     * Extracts the JWT token from the request
+     * 
+     * @param request The HTTP request
+     * @return The JWT token or null if not found
+     */
+    private String parseJwt(HttpServletRequest request) {
+        String headerAuth = request.getHeader("Authorization");
+
+        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
+        }
+
+        return null;
     }
 }

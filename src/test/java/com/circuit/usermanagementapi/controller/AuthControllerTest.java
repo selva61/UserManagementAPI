@@ -10,6 +10,7 @@ import com.circuit.usermanagementapi.repository.RoleRepository;
 import com.circuit.usermanagementapi.repository.TeamRepository;
 import com.circuit.usermanagementapi.repository.UserRepository;
 import com.circuit.usermanagementapi.security.jwt.JwtUtils;
+import com.circuit.usermanagementapi.security.services.TokenBlacklistService;
 import com.circuit.usermanagementapi.security.services.UserDetailsImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.*;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -60,6 +65,9 @@ class AuthControllerTest {
 
     @Mock
     private JwtUtils jwtUtils;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks
     private AuthController authController;
@@ -279,5 +287,36 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(signupRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully!"));
+    }
+
+    @Test
+    void testLogoutUser_Success() throws Exception {
+        // Test JWT token
+        String testToken = "testJwtToken";
+        // Future expiration time (current time + 1 hour)
+        long expirationTime = System.currentTimeMillis() + 3600000;
+
+        // Mock JwtUtils method
+        when(jwtUtils.getExpirationFromJwtToken(anyString())).thenReturn(expirationTime);
+
+        // Mock TokenBlacklistService method
+        doNothing().when(tokenBlacklistService).blacklistToken(anyString(), anyLong());
+
+        // Perform request
+        mockMvc.perform(post("/api/auth/logout")
+                .header("Authorization", "Bearer " + testToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logout successful!"));
+
+        // Verify that the token was blacklisted
+        verify(tokenBlacklistService).blacklistToken(testToken, expirationTime);
+    }
+
+    @Test
+    void testLogoutUser_NoToken() throws Exception {
+        // Perform request without token
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Error: No token provided"));
     }
 }
